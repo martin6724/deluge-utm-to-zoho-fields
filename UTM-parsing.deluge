@@ -1,0 +1,62 @@
+info leadId;
+getLeads = zoho.crm.getRecordById("Leads",leadId);
+leadName = ifnull(getLeads.get("First_Name"),"");
+companyName = ifnull(getLeads.get("Company"),"");
+leadStatus = ifnull(getLeads.get("Lead_Status"),"");
+//Remove bogus leads
+info "leadName" + leadName;
+info "companyName" + companyName;
+info "leadStatus" + leadStatus;
+if(leadName.contains("Henryzem") || companyName.contains("google") || leadStatus.contains("Website Purchase"))
+{
+	deleteRecordMap = Map();
+	deleteRecordMap = {"module":"Leads","id":leadId};
+	deleteResp = zoho.crm.invokeConnector("crm.delete",deleteRecordMap);
+	info deleteResp;
+	info "returned Bogus Lead";
+	return;
+}
+referrerUrl = ifnull(getLeads.get("Referrer_URL"),"");
+if(referrerUrl != "")
+{
+	urlVal = referrerUrl.indexOf("?");
+	customVariables = referrerUrl.substring(urlVal + 1).replaceAll('%20',' ').replaceAll('%2B','+').replaceAll('%2A','*').replaceAll('%22','"').replaceAll('%3C',"<").replaceAll('%3E',">").replaceAll('%23',"#").replaceAll('%25','%').replaceAll('%7C','|').replaceAll('%28','(').replaceAll("%29",')');
+	utm_source = "";
+	utm_medium = "";
+	utm_campaign = "";
+	utm_term = "";
+	utm_content = "";
+	formMap = Map();
+	for each  customVariablesArr in customVariables.toList("&")
+	{
+		var_s = getPrefix(customVariablesArr,"=");
+		val_s = getSuffix(customVariablesArr,"=");
+		if(var_s == "utm_source")
+		{
+			utm_source = val_s;
+		}
+		if(var_s == "utm_medium")
+		{
+			utm_medium = val_s;
+		}
+		if(var_s == "utm_campaign")
+		{
+			utm_campaign = val_s;
+		}
+		if(var_s == "utm_term")
+		{
+			utm_term = val_s;
+		}
+		if(var_s == "utm_content")
+		{
+			utm_content = val_s;
+		}
+	}
+	formMap.put("Source",utm_source);
+	formMap.put("Medium",utm_medium);
+	formMap.put("Campaign1",utm_campaign);
+	formMap.put("Term",utm_term);
+	formMap.put("Content",utm_content);
+	leadupdated = zoho.crm.updateRecord("Leads",leadId.toString(),formMap);
+	info leadupdated;
+}
